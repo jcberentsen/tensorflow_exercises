@@ -39,10 +39,16 @@ def create_model(input_size):
   y_ = tf.placeholder(tf.float32, shape=(None, 1))
   W1 = tf.Variable(tf.random_uniform([input_size, hidden1], -1.0, 1.0))
   b1 = tf.Variable(tf.zeros([hidden1]))
-  W2 = tf.Variable(tf.random_uniform([hidden1, 1], -1.0, 1.0))
-  b2 = tf.Variable(tf.zeros([1]))
-  h1 = tf.nn.relu(tf.matmul(x, W1) + b1)
-  y = tf.matmul(h1, W2) + b2
+
+  W2 = tf.Variable(tf.random_uniform([hidden1, hidden2], -1.0, 1.0))
+  b2 = tf.Variable(tf.zeros([hidden2]))
+  h1 = tf.nn.tanh(tf.matmul(x, W1) + b1)
+
+  W3 = tf.Variable(tf.random_uniform([hidden2, 1], -1.0, 1.0))
+  b3 = tf.Variable(tf.zeros([1]))
+  h2 = tf.nn.tanh(tf.matmul(h1, W2) + b2)
+
+  y = tf.matmul(h2, W3) + b3
 
   return x, y, y_
 
@@ -52,6 +58,7 @@ if __name__ == '__main__':
   batch_size = 64
   input_size = 8
   hidden1 = 16
+  hidden2 = 16
   lr = 0.03
   epochs = 10001
 
