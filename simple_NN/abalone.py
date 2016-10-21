@@ -1,7 +1,6 @@
-""" Multivariate linear regression 
+""" 1 hidden layer neural network for regression
     Author: Dario Cazzani
 """
-import argparse
 import numpy as np
 import tensorflow as tf
 from tflearn.data_utils import load_csv, to_categorical
