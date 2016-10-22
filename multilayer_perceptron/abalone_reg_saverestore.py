@@ -115,6 +115,6 @@ if __name__ == '__main__':
     print "Loading variables from '%s'." % checkpoint_file
     saver.restore(sess, checkpoint_file)  
     prediction = sess.run(y, feed_dict={x : test1})
-    print 'prediction with latest model: %.3f. Correct: %.3f' %(prediction, correct1)
+    print 'prediction with best model: %.3f. Correct: %.3f' %(prediction, correct1)
 
 
