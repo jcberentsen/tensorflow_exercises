@@ -1,9 +1,13 @@
-""" 1 hidden layer neural network for regression
+""" 1+ hidden layer neural network for regression
     Author: Dario Cazzani
 """
 import numpy as np
 import tensorflow as tf
+import sys, os
 from tflearn.data_utils import load_csv, to_categorical
+# add folder where settings.py is present
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+import settings
 
 def load_data(filename):
   data, labels = load_csv(filename, target_column=8, categorical_labels=False)
@@ -63,7 +67,7 @@ if __name__ == '__main__':
   epochs = 10001
 
   # load data
-  data, labels, num_classes = load_data('/home/dario/Dev/tensorflow_studygroup/datasets/abalone.csv')
+  data, labels, num_classes = load_data(settings.PROJECT_DIR + '/datasets/abalone.csv')
   data, labels = preprocess(data, labels)
   data_set = data_iterator(data, labels, batch_size)
 
