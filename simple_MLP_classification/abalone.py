@@ -5,20 +5,18 @@
 """
 import numpy as np
 import tensorflow as tf
-from tflearn.data_utils import load_csv, to_categorical
+from tflearn.data_utils import load_csv
 import sys, os
-from tflearn.data_utils import load_csv, to_categorical
 # add folder where settings.py is present
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 import settings
 
 def load_data(filename):
-  data, labels = load_csv(filename, target_column=8, categorical_labels=False)
-  num_classes = len(set(labels))
-
+  num_classes = 30
+  data, labels = load_csv(filename, categorical_labels=True, n_classes=num_classes)
   return data, labels, num_classes
 
-def preprocess(data, labels):
+def preprocess(data):
   for i in range(len(data)):
     if data[i][0] == 'M':
       data[i][0] = 0.
@@ -26,10 +24,7 @@ def preprocess(data, labels):
       data[i][0] = 1.
     else:
       data[i][0] = 2.
-  labels = np.asarray(labels, dtype=np.float32)
-  labels = np.reshape(labels, (labels.shape[0], 1))
-  return np.asarray(data, dtype=np.float32), labels
-
+  return np.asarray(data, dtype=np.float32)
 
 """ A simple data iterator """
 def data_iterator(data, labels, batch_size):
@@ -44,34 +39,39 @@ def data_iterator(data, labels, batch_size):
 if __name__ == '__main__':
   
   # checkpoint file
-  checkpoint_file = settings.PROJECT_DIR + '/multilayer_perceptron/best_model.chk'
+  checkpoint_file = settings.PROJECT_DIR + '/simple_MLP_classification/best_model.chk'
   # hyperparams
   batch_size = 64
   input_size = 8
-  hidden1 = 16
-  lr = 0.03
-  epochs = 10001
-  lmbda = 3e-1  
+  hidden1 = 32
+  hidden2 = 16
+  lr = 0.001
+  epochs = 30001
+  lmbda = 3e-3  
 
   # load data
   data, labels, num_classes = load_data(settings.PROJECT_DIR + '/datasets/abalone.csv')
-  data, labels = preprocess(data, labels)
+  data = preprocess(data)
   data_set = data_iterator(data, labels, batch_size)
 
   # Create model
   x = tf.placeholder(tf.float32, shape=(None, input_size))
-  y_ = tf.placeholder(tf.float32, shape=(None, 1))
+  y_ = tf.placeholder(tf.float32, shape=(None, num_classes))
+
   W1 = tf.Variable(tf.random_uniform([input_size, hidden1], -1.0, 1.0))
   b1 = tf.Variable(tf.zeros([hidden1]))
+  h1 = tf.nn.relu(tf.matmul(x, W1) + b1)
 
-  W2 = tf.Variable(tf.random_uniform([hidden1, 1], -1.0, 1.0))
-  b2 = tf.Variable(tf.zeros([1]))
-  h1 = tf.nn.tanh(tf.matmul(x, W1) + b1)
+  W2 = tf.Variable(tf.random_uniform([hidden1, hidden2], -1.0, 1.0))
+  b2 = tf.Variable(tf.zeros([hidden2]))
+  h2 = tf.nn.relu(tf.matmul(h1, W2) + b2)
 
-  y = tf.matmul(h1, W2) + b2
+  W3 = tf.Variable(tf.random_uniform([hidden2, num_classes], -1.0, 1.0))
+  b3 = tf.Variable(tf.zeros([num_classes]))
+  y = tf.matmul(h2, W3) + b3
 
-  # Define loss
-  loss = tf.reduce_mean(tf.square(y - y_))
+  # Define loss - cross_entropy
+  loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
   
   # L2 regularization for the fully connected parameters.
   regularizers = (tf.nn.l2_loss(W1) + tf.nn.l2_loss(b1) +
@@ -83,10 +83,6 @@ if __name__ == '__main__':
   # define optimizer
   optimizer = tf.train.GradientDescentOptimizer(lr)
   train = optimizer.minimize(loss)
-
-  # Test
-  test1 = np.asarray((1.,0.53,0.415,0.15,0.7775,0.237,0.1415,0.33)).reshape((1,input_size))    
-  correct1 = 20.
 
   # Before starting, initialize the variables.  We will 'run' this first.
   init = tf.initialize_all_variables()
@@ -108,13 +104,17 @@ if __name__ == '__main__':
             saver.save(sess, checkpoint_file)
             best_loss = train_loss
 
-    # test model prediction
-    prediction = sess.run(y, feed_dict={x : test1})
-    print 'prediction with latest model: %.3f. Correct: %.3f' %(prediction, correct1)
+    # Test trained model
+    correct_prediction = tf.nn.in_top_k(y, tf.argmax(y_, 1), 3)
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    acc = sess.run(accuracy, feed_dict={x: data, y_: labels})
+    print 'Accuracy with latest model: %.5f' %acc
     
     print "Loading variables from '%s'." % checkpoint_file
     saver.restore(sess, checkpoint_file)  
-    prediction = sess.run(y, feed_dict={x : test1})
-    print 'prediction with best model: %.3f. Correct: %.3f' %(prediction, correct1)
+    correct_prediction = tf.nn.in_top_k(y, tf.argmax(y_, 1), 3)     
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    acc = sess.run(accuracy, feed_dict={x: data, y_: labels})
+    print 'Accuracy with best model: %.5f' %acc
 
 
