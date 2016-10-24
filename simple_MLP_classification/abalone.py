@@ -1,4 +1,4 @@
-""" 1 hidden layer neural network for regression
+""" 1 hidden layer neural network for classification
     with regularization
     save and restore best model
     Author: Dario Cazzani

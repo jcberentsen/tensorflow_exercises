@@ -1,8 +1,10 @@
-""" 1+ hidden layer neural network for regression
+""" 1 hidden layer neural network for regression
+    with regularization
     Author: Dario Cazzani
 """
 import numpy as np
 import tensorflow as tf
+from tflearn.data_utils import load_csv, to_categorical
 import sys, os
 from tflearn.data_utils import load_csv, to_categorical
 # add folder where settings.py is present
@@ -11,9 +13,8 @@ import settings
 
 def load_data(filename):
   data, labels = load_csv(filename, target_column=8, categorical_labels=False)
-  num_classes = len(set(labels))
 
-  return data, labels, num_classes
+  return data, labels
 
 def preprocess(data, labels):
   for i in range(len(data)):
@@ -38,44 +39,44 @@ def data_iterator(data, labels, batch_size):
       labels_batch = labels[batch_idx:batch_idx+batch_size]
       yield data_batch, labels_batch
 
-def create_model(input_size):
-  x = tf.placeholder(tf.float32, shape=(None, input_size))
-  y_ = tf.placeholder(tf.float32, shape=(None, 1))
-  W1 = tf.Variable(tf.random_uniform([input_size, hidden1], -1.0, 1.0))
-  b1 = tf.Variable(tf.zeros([hidden1]))
-
-  W2 = tf.Variable(tf.random_uniform([hidden1, hidden2], -1.0, 1.0))
-  b2 = tf.Variable(tf.zeros([hidden2]))
-  h1 = tf.nn.tanh(tf.matmul(x, W1) + b1)
-
-  W3 = tf.Variable(tf.random_uniform([hidden2, 1], -1.0, 1.0))
-  b3 = tf.Variable(tf.zeros([1]))
-  h2 = tf.nn.tanh(tf.matmul(h1, W2) + b2)
-
-  y = tf.matmul(h2, W3) + b3
-
-  return x, y, y_
-
 if __name__ == '__main__':
   
   # hyperparams
   batch_size = 64
   input_size = 8
   hidden1 = 16
-  hidden2 = 16
   lr = 0.03
   epochs = 10001
+  lmbda = 3e-1  
 
   # load data
-  data, labels, num_classes = load_data(settings.PROJECT_DIR + '/datasets/abalone.csv')
+  data, labels = load_data(settings.PROJECT_DIR + '/datasets/abalone.csv')
   data, labels = preprocess(data, labels)
   data_set = data_iterator(data, labels, batch_size)
 
   # Create model
-  x, y, y_ = create_model(input_size)
+  x = tf.placeholder(tf.float32, shape=(None, input_size))
+  y_ = tf.placeholder(tf.float32, shape=(None, 1))
+  W1 = tf.Variable(tf.random_uniform([input_size, hidden1], -1.0, 1.0))
+  b1 = tf.Variable(tf.zeros([hidden1]))
 
-  # Define loss and optimizer
+  W2 = tf.Variable(tf.random_uniform([hidden1, 1], -1.0, 1.0))
+  b2 = tf.Variable(tf.zeros([1]))
+  h1 = tf.nn.tanh(tf.matmul(x, W1) + b1)
+
+  y = tf.matmul(h1, W2) + b2
+
+  # Define loss
   loss = tf.reduce_mean(tf.square(y - y_))
+  
+  # L2 regularization for the fully connected parameters.
+  regularizers = (tf.nn.l2_loss(W1) + tf.nn.l2_loss(b1) +
+                  tf.nn.l2_loss(W2) + tf.nn.l2_loss(b2))
+  
+  # Add the regularization term to the loss.
+  loss += lmbda * regularizers
+
+  # define optimizer
   optimizer = tf.train.GradientDescentOptimizer(lr)
   train = optimizer.minimize(loss)
 
