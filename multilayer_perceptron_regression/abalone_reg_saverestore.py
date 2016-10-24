@@ -43,7 +43,7 @@ def data_iterator(data, labels, batch_size):
 if __name__ == '__main__':
   
   # checkpoint file
-  checkpoint_file = settings.PROJECT_DIR + '/multilayer_perceptron/best_model.chk'
+  checkpoint_file = settings.PROJECT_DIR + '/multilayer_perceptron_regression/best_model.chk'
   # hyperparams
   batch_size = 64
   input_size = 8

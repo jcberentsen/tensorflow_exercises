@@ -59,11 +59,10 @@ if __name__ == '__main__':
   y_ = tf.placeholder(tf.float32, shape=(None, 1))
   W1 = tf.Variable(tf.random_uniform([input_size, hidden1], -1.0, 1.0))
   b1 = tf.Variable(tf.zeros([hidden1]))
+  h1 = tf.nn.tanh(tf.matmul(x, W1) + b1)
 
   W2 = tf.Variable(tf.random_uniform([hidden1, 1], -1.0, 1.0))
   b2 = tf.Variable(tf.zeros([1]))
-  h1 = tf.nn.tanh(tf.matmul(x, W1) + b1)
-
   y = tf.matmul(h1, W2) + b2
 
   # Define loss
