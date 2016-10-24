@@ -32,20 +32,21 @@ def shape_image(raw):
 	blue = extract_plane(raw, 2048)
 	return np.dstack((red, green, blue))
 
-def	load_batch_images(batch_filename):
+def	load_batch_details(batch_filename):
 	batch = load_batch(batch_filename)
-	return map(shape_image, batch['data'])
+	return map(shape_image, batch['data']), batch['labels']
 	
 if __name__ == '__main__':
 	folder_name = '/home/dario/Downloads/cifar-10-batches-py'
 	batches_list = glob.glob(folder_name + '/data_batch*')
 
-	all_image_batches = map(load_batch_images, batches_list)
-	print (len(all_image_batches))
-	all_images = itertools.chain(*all_image_batches)
+	all_image_batches, all_labels = zip(*map(load_batch_details, batches_list))
+	all_images = list(itertools.chain(*all_image_batches))
+	all_labels = list(itertools.chain(*all_labels))
 
-	plt.imshow(list(all_images)[3])
-	plt.show()
+	assert(len(all_labels) == len(all_images))
+#	plt.imshow(list(all_images)[3])
+#	plt.show()
 	"""
 	reshaped = np.reshape(data2, (32,32,3), order='A')
 	plt.imshow(reshaped)
