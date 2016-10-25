@@ -59,7 +59,7 @@ if __name__ == '__main__':
 	# checkpoint file
 	checkpoint_file = settings.PROJECT_DIR + '/simple_CNN/best_model.chk'
 	# hyperparams
-	batch_size = 64
+	batch_size = 100
 	input_size = 32
 	lr = 0.001
 	epochs = 30001
@@ -84,18 +84,14 @@ if __name__ == '__main__':
 	with tf.name_scope("conv1") as scope:
 		filter1 = tf.Variable(tf.truncated_normal([2, 2, 3, 16]), name='filter1')
 		conv1_out = tf.nn.conv2d(x, filter1, [1, 1, 1, 1], padding='SAME')
-		print conv1_out.get_shape()
 		b_conv1 = tf.Variable(tf.zeros([16]))
 		bias = tf.nn.bias_add(conv1_out, b_conv1)
-		print bias.get_shape()
 		with tf.name_scope("relu1") as scope:
 			conv1_relu = tf.nn.relu(bias)
-		print conv1_relu.get_shape()
-
+		
 	with tf.name_scope("conv1_flattened") as scope:
 		conv1_flattened = tf.reshape(conv1_relu, [batch_size, 32*32*16])
-		print conv1_flattened.get_shape()
-    	dim = conv1_flattened.get_shape()[1].value
+		dim = conv1_flattened.get_shape()[1].value
 
 	with tf.name_scope("fully_connected1") as scope:
 		W_fc = tf.Variable(tf.random_uniform([dim, num_classes], -1.0, 1.0))
@@ -121,7 +117,10 @@ if __name__ == '__main__':
 	merged_summary_op = tf.merge_all_summaries()
 
 	# Launch the graph.
-	with tf.Session() as sess:
+	config = tf.ConfigProto(
+        device_count = {'GPU': 0}
+    )
+	with tf.Session(config=config) as sess:
 		sess.run(init)
 		saver = tf.train.Saver()
 
@@ -130,9 +129,12 @@ if __name__ == '__main__':
 
 		best_loss = np.inf
 		# Train
+		print 'Starting training..'
 		for step in range(epochs):
 			batch = data_set.next()
+			print 'Before first run'
 			_, train_loss = sess.run([train, loss], feed_dict={x: batch[0], y_: batch[1]})
+			print 'step %s' %step
 			if step % 200 == 0:
 				# Write logs for each iteration
 				summary_str = sess.run(merged_summary_op, feed_dict={x: batch[0], y_: batch[1]})
