@@ -21,23 +21,23 @@ import time
 from cifar_utils import *
 
 def load_data(folder_name):
-    train_batches_list = glob.glob(folder_name + '/data_batch*')
-    test_batches_list = glob.glob(folder_name + '/test_batch*')
+	train_batches_list = glob.glob(folder_name + '/data_batch*')
+	test_batches_list = glob.glob(folder_name + '/test_batch*')
 
-    all_image_batches_train, all_labels_batches_train = zip(*map(load_batch_details, train_batches_list))
-    all_images_train = list(itertools.chain(*all_image_batches_train))
-    all_labels_train = list(itertools.chain(*all_labels_batches_train))
-    assert(len(all_labels_train) == len(all_images_train))
+	all_image_batches_train, all_labels_batches_train = zip(*map(load_batch_details, train_batches_list))
+	all_images_train = list(itertools.chain(*all_image_batches_train))
+	all_labels_train = list(itertools.chain(*all_labels_batches_train))
+	assert(len(all_labels_train) == len(all_images_train))
 
-    all_image_batches_test, all_labels_batches_test = zip(*map(load_batch_details, test_batches_list))
-    all_images_test = list(itertools.chain(*all_image_batches_test))
-    all_labels_test = list(itertools.chain(*all_labels_batches_test))
-    assert(len(all_labels_test) == len(all_images_test))
+	all_image_batches_test, all_labels_batches_test = zip(*map(load_batch_details, test_batches_list))
+	all_images_test = list(itertools.chain(*all_image_batches_test))
+	all_labels_test = list(itertools.chain(*all_labels_batches_test))
+	assert(len(all_labels_test) == len(all_images_test))
 
-	num_classes = np.max(np.asarray(all_images_train)) + 1
+	num_classes = np.max(np.asarray(all_labels_train)) + 1
 	assert(num_classes == np.max(np.asarray(all_labels_test)) + 1)
 
-	return np.asarray(all_images_train), np.eye(num_classes)[np.asarray(all_images_train)], np.asarray(all_images_test), np.eye(num_classes)[np.asarray(all_labels_test)], num_classes
+	return np.asarray(all_images_train), np.eye(num_classes)[np.asarray(all_labels_train)], np.asarray(all_images_test), np.eye(num_classes)[np.asarray(all_labels_test)], num_classes
 
 
 def preprocess(data):
@@ -46,16 +46,15 @@ def preprocess(data):
 
 """ A simple data iterator """
 def data_iterator(data, labels, batch_size):
-    N = data.shape[0]
-    batch_idx = 0
-    while True:
-        for batch_idx in range(0, N, batch_size):
-            data_batch = data[batch_idx:batch_idx+batch_size]
-            labels_batch = labels[batch_idx:batch_idx+batch_size]
-            yield data_batch, labels_batch
+	N = data.shape[0]
+	batch_idx = 0
+	while True:
+		for batch_idx in range(0, N, batch_size):
+			data_batch = data[batch_idx:batch_idx+batch_size]
+			labels_batch = labels[batch_idx:batch_idx+batch_size]
+			yield data_batch, labels_batch
 
 if __name__ == '__main__':
-<<<<<<< HEAD
 	
 	# checkpoint file
 	checkpoint_file = settings.PROJECT_DIR + '/simple_CNN/best_model.chk'
@@ -80,25 +79,32 @@ if __name__ == '__main__':
 		x = tf.placeholder(tf.float32, shape=(None, input_size, input_size, num_channels))
 
 	with tf.name_scope("labels") as scope:
-	y_ = tf.placeholder(tf.int32, shape=(None))
+		y_ = tf.placeholder(tf.float32, shape=(None))
 
 	with tf.name_scope("conv1") as scope:
 		filter1 = tf.Variable(tf.truncated_normal([2, 2, 3, 16]), name='filter1')
 		conv1_out = tf.nn.conv2d(x, filter1, [1, 1, 1, 1], padding='SAME')
+		print conv1_out.get_shape()
+		b_conv1 = tf.Variable(tf.zeros([16]))
+		bias = tf.nn.bias_add(conv1_out, b_conv1)
+		print bias.get_shape()
 		with tf.name_scope("relu1") as scope:
-			conv1_relu = tf.nn.relu(conv1_out)
+			conv1_relu = tf.nn.relu(bias)
+		print conv1_relu.get_shape()
 
 	with tf.name_scope("conv1_flattened") as scope:
-		conv1_flattened = tf.reshape(conv1_relu, [-1, 32*32*16])
+		conv1_flattened = tf.reshape(conv1_relu, [batch_size, 32*32*16])
+		print conv1_flattened.get_shape()
+    	dim = conv1_flattened.get_shape()[1].value
 
 	with tf.name_scope("fully_connected1") as scope:
-		W1 = tf.Variable(tf.random_uniform([32*32*16, num_classes]))
-		b1 = tf.Variable(tf.zeros([num_classes]))
-		y = tf.matmul(conv1_flattened, W1) + b1
+		W_fc = tf.Variable(tf.random_uniform([dim, num_classes], -1.0, 1.0))
+		b_fc = tf.Variable(tf.zeros([num_classes]))
+		y = tf.matmul(conv1_flattened, W_fc) + b_fc
 
 	with tf.name_scope("loss") as scope:
 		# Define loss - cross_entropy
-		loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(y, y_))
+		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
 
 
 	# Create a summary to monitor the loss
