@@ -67,7 +67,7 @@ if __name__ == '__main__':
 	num_channels = 3
 
 	# load data
-	folder_name = '/home/dario/Downloads/cifar-10-batches-py'
+	folder_name = settings.DATASET_DIR + '/cifar-10-batches-py'
 	X_train, y_train, X_test, y_test, num_classes = load_data(folder_name)
 	data_set = data_iterator(X_train, y_train, batch_size)
 
