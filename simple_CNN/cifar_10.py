@@ -34,7 +34,10 @@ def load_data(folder_name):
 	all_labels_test = list(itertools.chain(*all_labels_batches_test))
 	assert(len(all_labels_test) == len(all_images_test))
 
-	return np.asarray(all_images_train), np.asarray(all_labels_train), np.asarray(all_images_test), np.asarray(all_labels_test)
+	num_classes = np.max(np.asarray(all_images_train)) + 1
+	assert(num_classes == np.max(np.asarray(all_labels_test)) + 1)
+
+	return np.asarray(all_images_train), np.eye(num_classes)[np.asarray(all_images_train)], np.asarray(all_images_test), np.eye(num_classes)[np.asarray(all_labels_test)], num_classes
 
 def preprocess(data):
 	# perform per image whitening
@@ -63,11 +66,10 @@ if __name__ == '__main__':
 	epochs = 30001
 	lmbda = 3e-3  
 	num_channels = 3
-	num_classes = 10
 
 	# load data
 	folder_name = '/home/dario/Downloads/cifar-10-batches-py'
-	X_train, y_train, X_test, y_test = load_data(folder_name)
+	X_train, y_train, X_test, y_test, num_classes = load_data(folder_name)
 	data_set = data_iterator(X_train, y_train, batch_size)
 
 	# skip preprocess for now
@@ -78,7 +80,7 @@ if __name__ == '__main__':
 		x = tf.placeholder(tf.float32, shape=(None, input_size, input_size, num_channels))
 
 	with tf.name_scope("labels") as scope:
-		y_ = tf.placeholder(tf.float32, shape=(None, 1))
+		y_ = tf.placeholder(tf.float32, shape=(None, num_classes))
 
 	"""
 	with tf.name_scope("conv1") as scope:
@@ -97,7 +99,7 @@ if __name__ == '__main__':
 		
 	with tf.name_scope("loss") as scope:
 		# Define loss - cross_entropy
-		loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(y, y_))
+		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
 
 	# Create a summary to monitor the loss
 	tf.scalar_summary("loss", loss)
