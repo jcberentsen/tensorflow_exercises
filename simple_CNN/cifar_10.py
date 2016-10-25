@@ -80,29 +80,27 @@ if __name__ == '__main__':
 	with tf.name_scope("labels") as scope:
 		y_ = tf.placeholder(tf.float32, shape=(None, 1))
 
+	"""
 	with tf.name_scope("conv1") as scope:
 		filter1 = tf.Variable(tf.truncated_normal([2, 2, 3, 16]), name='filter1')
-		conv1_out = tf.nn.conv2d(x, filter1, [1, 1, 1, 1], padding='VALID')
+		conv1_out = tf.nn.conv2d(x, filter1, [1, 1, 1, 1], padding='SAME')
 		with tf.name_scope("relu1") as scope:
 			conv1_relu = tf.nn.relu(conv1_out)
-
+	"""
 	with tf.name_scope("conv1_flattened") as scope:
-		conv1_flattened = tf.reshape(conv1_relu, [-1, 17*17*16])
+		conv1_flattened = tf.reshape(x, [-1, 32*32*3])
 
 	with tf.name_scope("fully_connected1") as scope:
-		W1 = tf.Variable(tf.random_uniform([17*17*16, 1]))
-		b1 = tf.Variable(tf.zeros([1]))
-		out_fullyconnected1 = tf.matmul(conv1_flattened, W1) + b1
-		with tf.name_scope("relu_fullyconnected1") as scope:
-			y = tf.nn.relu(out_fullyconnected1)
-
+		W1 = tf.Variable(tf.random_uniform([32*32*3, num_classes]))
+		b1 = tf.Variable(tf.zeros([num_classes]))
+		y = tf.matmul(conv1_flattened, W1) + b1
+		
 	with tf.name_scope("loss") as scope:
 		# Define loss - cross_entropy
-		loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
+		loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(y, y_))
 
 	# Create a summary to monitor the loss
 	tf.scalar_summary("loss", loss)
-
 
 	# define optimizer
 	optimizer = tf.train.GradientDescentOptimizer(lr)
