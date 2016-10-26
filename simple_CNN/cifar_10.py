@@ -39,10 +39,12 @@ def load_data(folder_name):
 
     return np.asarray(all_images_train), np.eye(num_classes)[np.asarray(all_labels_train)], np.asarray(all_images_test), np.eye(num_classes)[np.asarray(all_labels_test)], num_classes
 
-
 def preprocess(data):
     # perform per image whitening
     return map(tf.image.per_image_whitening, data)
+
+def flatsize(shape):
+    return shape[1].value * shape[2].value * shape[3].value
 
 """ A simple data iterator """
 def data_iterator(data, labels, batch_size):
@@ -55,14 +57,13 @@ def data_iterator(data, labels, batch_size):
             yield data_batch, labels_batch
 
 if __name__ == '__main__':
-
-    # checkpoint file
     checkpoint_file = settings.PROJECT_DIR + '/simple_CNN/best_model.chk'
     # hyperparams
     batch_size = 100
     input_size = 32
     lr = 0.001
-    epochs = 30001
+    epochs = 3001
+
     lmbda = 3e-3
     num_channels = 3
 
@@ -90,7 +91,7 @@ if __name__ == '__main__':
             conv1_relu = tf.nn.relu(bias)
 
     with tf.name_scope("conv1_flattened") as scope:
-        conv1_flattened = tf.reshape(conv1_relu, [batch_size, 32*32*16])
+        conv1_flattened = tf.reshape(conv1_relu, [batch_size, flatsize(conv1_relu.get_shape())])
         dim = conv1_flattened.get_shape()[1].value
 
     with tf.name_scope("fully_connected1") as scope:
@@ -101,7 +102,6 @@ if __name__ == '__main__':
     with tf.name_scope("loss") as scope:
         # Define loss - cross_entropy
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
-
 
     # Create a summary to monitor the loss
     tf.scalar_summary("loss", loss)
@@ -118,14 +118,14 @@ if __name__ == '__main__':
 
     # Launch the graph.
     config = tf.ConfigProto(
-        device_count = {'GPU': 0}
+        device_count = {'GPU': 1}
     )
     with tf.Session(config=config) as sess:
         sess.run(init)
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(write_version=tf.train.SaverDef.V2)
 
         # Set the logs writer to file logs.log
-        summary_writer = tf.train.SummaryWriter(settings.PROJECT_DIR + '/simple_CNN/logs', graph_def=sess.graph_def)
+        summary_writer = tf.train.SummaryWriter(settings.PROJECT_DIR + '/simple_CNN/logs', graph=sess.graph)
 
         best_loss = np.inf
         # Train
