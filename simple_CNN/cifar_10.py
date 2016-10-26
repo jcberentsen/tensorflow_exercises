@@ -16,6 +16,7 @@ import settings
 import itertools
 #from sklearn import preprocessing
 import time
+import uuid
 
 # Helper functions
 from cifar_utils import *
@@ -58,14 +59,17 @@ def data_iterator(data, labels, batch_size):
 
 if __name__ == '__main__':
     checkpoint_file = settings.PROJECT_DIR + '/simple_CNN/best_model.chk'
+
+    # input shape
+    input_size = 32
+    num_channels = 3
+
     # hyperparams
     batch_size = 100
-    input_size = 32
     lr = 0.001
     epochs = 3001
 
-    lmbda = 3e-3
-    num_channels = 3
+    lmbda = 3e-6
 
     # load data
     folder_name = settings.DATASET_DIR + '/cifar-10-batches-py'
@@ -83,9 +87,11 @@ if __name__ == '__main__':
         y_ = tf.placeholder(tf.float32, shape=(None))
 
     with tf.name_scope("conv1") as scope:
-        filter1 = tf.Variable(tf.truncated_normal([2, 2, 3, 16]), name='filter1')
+        conv1_depth = 32
+        channels = 3
+        filter1 = tf.Variable(tf.truncated_normal([3, 3, channels, conv1_depth]), name='filter1')
         conv1_out = tf.nn.conv2d(x, filter1, [1, 1, 1, 1], padding='SAME')
-        b_conv1 = tf.Variable(tf.zeros([16]))
+        b_conv1 = tf.Variable(tf.zeros([conv1_depth]))
         bias = tf.nn.bias_add(conv1_out, b_conv1)
         with tf.name_scope("relu1") as scope:
             conv1_relu = tf.nn.relu(bias)
@@ -102,6 +108,10 @@ if __name__ == '__main__':
     with tf.name_scope("loss") as scope:
         # Define loss - cross_entropy
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y, y_))
+        # L2 regularization for the fully connected parameters.
+        regularizers = tf.nn.l2_loss(W_fc) + tf.nn.l2_loss(b_fc)
+        # Add the regularization term to the loss.
+        loss += lmbda * regularizers
 
     # Create a summary to monitor the loss
     tf.scalar_summary("loss", loss)
@@ -125,23 +135,23 @@ if __name__ == '__main__':
         saver = tf.train.Saver(write_version=tf.train.SaverDef.V2)
 
         # Set the logs writer to file logs.log
-        summary_writer = tf.train.SummaryWriter(settings.PROJECT_DIR + '/simple_CNN/logs', graph=sess.graph)
+        runid = uuid.uuid4()
+        summary_writer = tf.train.SummaryWriter(settings.PROJECT_DIR + '/simple_CNN/logs/run_' + runid.hex, graph=sess.graph)
 
         best_loss = np.inf
         # Train
         print 'Starting training..'
         for step in range(epochs):
             batch = data_set.next()
-            print 'Before first run'
             _, train_loss = sess.run([train, loss], feed_dict={x: batch[0], y_: batch[1]})
-            print 'step %s' %step
             if step % 200 == 0:
                 # Write logs for each iteration
+                print 'step %s' %step
                 summary_str = sess.run(merged_summary_op, feed_dict={x: batch[0], y_: batch[1]})
                 summary_writer.add_summary(summary_str, step)
 
-            print 'Loss: %.3f ' %train_loss
             if best_loss > train_loss:
+                print 'New best loss: %.3f ' % train_loss
                 if checkpoint_file is not None:
                     print "Saving variables to '%s'." % checkpoint_file
                     saver.save(sess, checkpoint_file)
